@@ -1,0 +1,5 @@
+pqcrypto
+boto3
+botocore
+awscli
+cryptography
