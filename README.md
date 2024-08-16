@@ -69,11 +69,12 @@ python quantcrypt.py
 
 Upon running the tool, you'll be presented with a vibrant and colorful main menu:
 
-![Attachment.png](blob:https://euangoddard.github.io/c2cf592f-891a-4d95-9386-329852f98961)
+<img width="473" alt="Screenshot 2024-08-16 at 10 48 45 PM" src="https://github.com/user-attachments/assets/4810bf82-a3a7-449e-8b70-97b836d2077d">
 
 You can select any operation by entering the corresponding number.
 
 ### Encrypting Data
+
 
 To encrypt data:
 
