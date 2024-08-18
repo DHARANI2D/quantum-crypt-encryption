@@ -73,7 +73,7 @@ def print_menu():
     print(f"{background_blue}                                                |___/ |_|         {reset}")
 
     print(f"{bold}{bright_yellow}                Version : 1.0.0                {reset}")
-    print(f"{bright_cyan}[::] {bold}Select an Operation{reset} {bright_cyan}[::]{reset}")
+    print(f"{bright_red}[::] {bold}Select an Operation{reset} {bright_red}[::]{reset}")
 
     print(f"{bright_green}[01]{reset} {bright_cyan}Encrypt and Upload Data{reset}")
     print(f"{bright_green}[02]{reset} {bright_cyan}Decrypt and Download Data{reset}")
