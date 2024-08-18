@@ -1,10 +1,50 @@
 import os
 import json
+from Crypto.PublicKey import RSA
 from aws_integration.s3_upload import upload_to_s3, list_s3_files, download_from_s3
 from aws_integration.config_manager import get_config, update_config
 from performance_benchmark.benchmark import benchmark
 from encryption_module.encryption import encrypt
 from encryption_module.decryption import decrypt
+import base64
+from Crypto.Random import get_random_bytes
+
+def generate_rsa_keypair():
+    """Generate an RSA keypair and return the keys as strings."""
+    key = RSA.generate(2048)
+    private_key = key.export_key().decode('utf-8')
+    public_key = key.publickey().export_key().decode('utf-8')
+    return private_key, public_key
+
+def generate_aes_key() -> str:
+    """Generate a base64-encoded AES key."""
+    aes_key = get_random_bytes(32)  # 32 bytes for AES-GCM-256
+    return base64.b64encode(aes_key).decode('utf-8')
+
+def save_keys_to_json(private_key: str, public_key: str, aes_key: str, file_path: str='./encryption_module/key.json'):
+    """Save the RSA keys and AES key to a JSON file."""
+    keys = {
+        'private_key': private_key,
+        'public_key': public_key,
+        'aes_key': aes_key
+    }
+    with open(file_path, 'w') as file:
+        json.dump(keys, file, indent=4)
+
+def generate_and_save_keys_if_needed(file_path: str='./encryption_module/key.json'):
+    """Generate RSA keypair, generate AES key, and save to JSON file if the file is empty or does not exist."""
+    if not os.path.exists(file_path) or os.stat(file_path).st_size == 0:
+        print("Generating new RSA keypair and AES key...")
+        private_key, public_key = generate_rsa_keypair()
+        aes_key = generate_aes_key()
+        save_keys_to_json(private_key, public_key, aes_key, file_path)
+        print(f"Keys saved to {file_path}")
+        return private_key, public_key, aes_key
+    else:
+        print(f"Keys already exist in {file_path}. No need to generate new keys.")
+        with open(file_path, 'r') as file:
+            keys = json.load(file)
+        return keys['private_key'], keys['public_key'], keys['aes_key']
 
 def clear_screen():
     """Clear the terminal screen."""
@@ -41,7 +81,8 @@ def print_menu():
     print(f"{bright_green}[03]{reset} {bright_cyan}View Configuration{reset}")
     print(f"{bright_green}[04]{reset} {bright_cyan}Update Configuration{reset}")
     print(f"{bright_green}[05]{reset} {bright_cyan}Benchmark Performance{reset}")
-    print(f"{bright_green}[06]{reset} {bright_yellow}Exit{reset}")
+    print(f"{bright_green}[06]{reset} {bright_cyan}List Files in S3 Bucket{reset}")
+    print(f"{bright_green}[07]{reset} {bright_yellow}Exit{reset}")
 
     print(f"\n{bright_yellow}[-] {bold}Select an option : {reset}", end='')
 
@@ -79,11 +120,31 @@ def handle_encrypt_and_upload():
 def handle_decrypt_and_download():
     """Handle data decryption and download from S3."""
     file_name = input("Enter file name to download from S3: ")
-    encrypted_data = download_from_s3(file_name)
+    encrypted_data_bytes = download_from_s3(file_name)
     
-    if encrypted_data:
-        decrypted_data = decrypt(encrypted_data.decode())
-        print(f"Decrypted data: {decrypted_data}")
+    if encrypted_data_bytes:
+        try:
+            # Convert bytes to JSON string if needed
+            if isinstance(encrypted_data_bytes, bytes):
+                encrypted_data_str = encrypted_data_bytes.decode('utf-8')
+            else:
+                encrypted_data_str = encrypted_data_bytes
+            
+            print(encrypted_data_str)
+            
+            # Convert JSON string to dictionary
+            encrypted_data = json.loads(encrypted_data_str)
+            
+            # Extract encrypted data and AES key from JSON
+            encrypted_data_content = encrypted_data['encrypted_data']
+            encrypted_aes_key_str = encrypted_data['encrypted_aes_key']
+            
+            # Decrypt data
+            decrypted_data = decrypt(encrypted_data_content, encrypted_aes_key_str)
+            print(f"Decrypted data: {decrypted_data}")
+        except Exception as e:
+            print(f"An error occurred: {e}")
+
     else:
         print("No data found for the given file name.")
     input("\nPress Enter to return to the main menu...")
@@ -116,8 +177,23 @@ def handle_benchmark():
     benchmark(data)
     input("\nPress Enter to return to the main menu...")
 
+def handle_list_s3_files():
+    """Handle listing all files in the S3 bucket."""
+    try:
+        files = list_s3_files()  # Get list of files from S3
+        if files:
+            print("Files in S3 bucket:")
+            for file in files:
+                print(file)
+        else:
+            print("No more files found in the S3 bucket.")
+    except Exception as e:
+        print(f"Failed to list files in S3: {e}")
+    input("\nPress Enter to return to the main menu...")
+
 def main():
     """Main function to run the CLI application."""
+    generate_and_save_keys_if_needed()  # Check and generate keys if needed
     while True:
         print_menu()
         option = input().strip()
@@ -133,6 +209,8 @@ def main():
         elif option == '05':
             handle_benchmark()
         elif option == '06':
+            handle_list_s3_files()
+        elif option == '07':
             break
         else:
             print("Invalid option. Please try again.")

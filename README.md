@@ -48,7 +48,7 @@ This project provides a Command-Line Interface (CLI) tool designed for managing 
 5. **Run the CLI Tool:**
    With the virtual environment active, you can run your CLI tool using:
    ```bash
-   python console_app.py
+   python console_app.py0
    ```
 
 6. **Deactivate the Virtual Environment:**
